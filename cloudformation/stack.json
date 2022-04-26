@@ -33,6 +33,10 @@
             "Type": "String",
             "Description": "Email address to recieve notifications when an order reaches the dead letter queue"
         },
+        "ProcessedOrdersEmailAddress": {
+            "Type": "String",
+            "Description": "Email address to recieve notifications when an order is processed"
+        },
         "PollingInterval": {
             "Type": "Number",
             "AllowedValues": [
@@ -696,6 +700,9 @@
                         },
                         "SNS_TOPIC_ARN": {
                             "Ref": "ExceptionsTopic"
+                        },
+                        "PROCESSED_SNS_TOPIC_ARN": {
+                            "Ref": "ProcessedOrdersTopic"
                         }
                     }
                 },
@@ -884,6 +891,36 @@
                                 "Ref": "WebhooksApi"
                             }
                         }
+                    ]
+                }
+            }
+        },
+        "ProcessedOrdersTopic": {
+            "Type": "AWS::SNS::Topic",
+            "Properties": {
+                "DisplayName": {
+                    "Fn::Sub": [
+                        "${AWS::StackName}-ProcessedOrders",
+                        {}
+                    ]
+                },
+                "Subscription": [
+                    {
+                        "Endpoint": {
+                            "Ref": "ProcessedOrdersEmailAddress"
+                        },
+                        "Protocol": "email"
+                    }
+                ],
+                "TopicName": {
+                    "Fn::Join": [
+                        "-",
+                        [
+                            {
+                                "Ref": "AWS::StackName"
+                            },
+                            "ProcessedOrders"
+                        ]
                     ]
                 }
             }

@@ -91,6 +91,35 @@ exports.handler = async (event, context) => {
             const payload = { status_id }
             await putBigCommerceRetry(`/orders/${order.id}`, payload)
 
+            // Publish to SNS 
+            console.log(`Success, sending Processed Notification`)
+            const sns = new AWS.SNS()
+            const messageParams = {
+                TopicArn: process.env.PROCESSED_SNS_TOPIC_ARN,
+                Subject: `New Order ${order.id}`,
+                Message: `
+====================
+NEW ORDER ${order.id} has been placed.
+Status: ${order.status}
+Payment Method: ${order.payment_method}
+Payment Total: ${order.total_inc_tax}
+${order.customer_message}
+====================
+${order.shipping_addresses?.[0]?.shipping_method}
+SHIP TO
+${order.shipping_addresses?.[0]?.first_name} ${order.shipping_addresses?.[0]?.last_name}
+${order.shipping_addresses?.[0]?.company}
+${order.shipping_addresses?.[0]?.street_1}
+${order.shipping_addresses?.[0]?.street_2}
+${order.shipping_addresses?.[0]?.city}, ${order.shipping_addresses?.[0]?.state} ${order.shipping_addresses?.[0]?.zip}
+${order.shipping_addresses?.[0]?.country}
+====================
+${order.products?.map(product => "Sku: " + product.sku + " Quantity: " + product.quantity + " Name: " + product.name)?.join("\n")}
+====================
+`
+            }
+            await sns.publish(messageParams).promise()
+
             // Remove the message from the queue
             console.log(`Success, deleting message ${message.messageId}`)
             const deleteParams = {
